@@ -28,6 +28,10 @@ echo.
 goto finish
 
 :errors
+echo error
+pause
 EXIT /B %ERRORLEVEL%
 
 :finish
+echo error
+pause
