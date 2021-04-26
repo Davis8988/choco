@@ -628,9 +628,9 @@ Please see https://chocolatey.org/docs/troubleshooting for more
               installSuccessAction: (e) =>
               {
                   "chocolatey".Log().Debug("Finished downloading and extracting: {0} to: {1}".format_with(e.Package.Id, e.InstallPath));
-                  string downloadedNugetPkgFileName = string.Join(".", new string[] { e.Package.Id.to_lower(), ApplicationParameters.NugetPackageExtensionName });
+                  string downloadedNugetPkgFileName = string.Join("", new string[] { e.Package.Id.to_lower(), Constants.PackageExtension });
                   string downloadedNugetPkgFilePath = _fileSystem.combine_paths(e.InstallPath, downloadedNugetPkgFileName);
-                  string newPkgFileName = string.Join(".", new string [] {e.Package.Id.to_lower(), e.Package.Version.ToString(), ApplicationParameters.NugetPackageExtensionName });
+                  string newPkgFileName = string.Join("", new string [] {e.Package.Id.to_lower(), e.Package.Version.ToString(), Constants.PackageExtension });
                   string newPkgFilePath = _fileSystem.combine_paths(ApplicationParameters.PackagesLocation, newPkgFileName);
                   
                   "chocolatey".Log().Debug("Moving: {0} to: {1} and renaming to: {2}".format_with(downloadedNugetPkgFilePath, ApplicationParameters.PackagesLocation, newPkgFileName));
@@ -764,7 +764,7 @@ Please see https://chocolatey.org/docs/troubleshooting for more
             var pkgPathProperty = downloadedPackage.GetType().GetField("_packagePath", BindingFlags.NonPublic | BindingFlags.Instance);
             string downloadedPackageRelPath = (String)pkgPathProperty.GetValue(downloadedPackage);
             string downloadedNugetPkgFilePath = _fileSystem.combine_paths(ApplicationParameters.PackagesLocation, downloadedPackageRelPath);
-            string newPkgFileName = string.Join(".", new string[] { downloadedPackage.Id.to_lower(), ApplicationParameters.NugetPackageExtensionName });
+            string newPkgFileName = string.Join("", new string[] { downloadedPackage.Id.to_lower(), Constants.PackageExtension });
             string newPkgFilePath = _fileSystem.combine_paths(ApplicationParameters.PackagesLocation, downloadedPackage.Id.to_lower(), newPkgFileName);
 
             if (downloadedNugetPkgFilePath != newPkgFilePath)
