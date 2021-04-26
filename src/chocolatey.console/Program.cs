@@ -87,6 +87,7 @@ namespace chocolatey.console
                 }
 
                 report_version_and_exit_if_requested(args, config);
+                update_packages_location_when_executing_download_command(args, config);
 
                 trap_exit_scenarios(config);
 
@@ -170,6 +171,16 @@ namespace chocolatey.console
                 pause_execution_if_debug();
                 Bootstrap.shutdown();
                 Environment.Exit(Environment.ExitCode);
+            }
+        }
+
+        private static void update_packages_location_when_executing_download_command(string[] args, ChocolateyConfiguration config)
+        {
+            var commandLine = Environment.CommandLine;
+            var firstArg = args.FirstOrDefault();
+            if (firstArg.is_equal_to("download") || commandLine.contains(" download "))
+            {
+                ApplicationParameters.PackagesLocation = config.PackagesLocation;
             }
         }
 
