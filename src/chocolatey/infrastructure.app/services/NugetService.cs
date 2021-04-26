@@ -697,31 +697,14 @@ Please see https://chocolatey.org/docs/troubleshooting for more
                 //   and '--force' was specified
                 if (downloadedPackage != null && (downloadedPackage.Version == availablePackage.Version) && config.Force)
                 {
-                    prepare_existing_downloaded_package_for_backup(downloadedPackage);
-                    
-                    // Re-search pacakge
-                    downloadedPackage = packageManager.LocalRepository.FindPackage(packageName);
-
-                    var forcedResult = packageInstalls.GetOrAdd(packageName, new PackageResult(availablePackage, _fileSystem.combine_paths(ApplicationParameters.PackagesLocation, availablePackage.Id)));
-                    forcedResult.Messages.Add(new ResultMessage(ResultType.Note, "Backing up and removing old version"));
-
-                    remove_rollback_directory_if_exists(packageName);
-                    backup_existing_version(config, downloadedPackage, _packageInfoService.get_package_information(downloadedPackage));
-
                     try
                     {
-                        packageManager.UninstallPackage(downloadedPackage, forceRemove: config.Force, removeDependencies: config.ForceDependencies);
-                        if (!forcedResult.InstallLocation.is_equal_to(ApplicationParameters.PackagesLocation))
-                        {
-                            _fileSystem.delete_directory_if_exists(forcedResult.InstallLocation, recursive: true);
-                        }
-                        remove_cache_for_package(config, downloadedPackage);
+                        remove_existing_downloaded_package_file(downloadedPackage, config.ForceDependencies);
                     }
                     catch (Exception ex)
                     {
-                        string logMessage = "{0}:{1} {2}".format_with("Unable to remove existing package prior to forced reinstall", Environment.NewLine, ex.Message);
+                        string logMessage = "{0}:{1} {2}".format_with("Unable to remove existing package prior to forced redownload", Environment.NewLine, ex.Message);
                         this.Log().Warn(logMessage);
-                        forcedResult.Messages.Add(new ResultMessage(ResultType.Inconclusive, logMessage));
                     }
                 }
 
@@ -758,8 +741,9 @@ Please see https://chocolatey.org/docs/troubleshooting for more
             return packageInstalls;
         }
 
-        public virtual void prepare_existing_downloaded_package_for_backup(IPackage downloadedPackage)
+        public virtual void remove_existing_downloaded_package_file(IPackage downloadedPackage, bool forceDependencies)
         {
+
             // Extract location of current downloaded package
             var pkgPathProperty = downloadedPackage.GetType().GetField("_packagePath", BindingFlags.NonPublic | BindingFlags.Instance);
             string downloadedPackageRelPath = (String)pkgPathProperty.GetValue(downloadedPackage);
