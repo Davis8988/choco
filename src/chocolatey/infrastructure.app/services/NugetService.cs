@@ -699,7 +699,7 @@ Please see https://chocolatey.org/docs/troubleshooting for more
                 {
                     try
                     {
-                        remove_existing_downloaded_package_file(downloadedPackage, config.ForceDependencies);
+                        remove_existing_downloaded_package(downloadedPackage, config.ForceDependencies);
                     }
                     catch (Exception ex)
                     {
@@ -741,7 +741,7 @@ Please see https://chocolatey.org/docs/troubleshooting for more
             return packageInstalls;
         }
 
-        public virtual void remove_existing_downloaded_package_file(IPackage downloadedPackage, bool forceDependencies)
+        public virtual void remove_existing_downloaded_package(IPackage downloadedPackage, bool forceDependencies)
         {
 
             // Extract location of current downloaded package

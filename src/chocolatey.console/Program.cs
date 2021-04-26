@@ -180,8 +180,8 @@ namespace chocolatey.console
             var firstArg = args.FirstOrDefault();
             if (firstArg.is_equal_to("download") || commandLine.contains(" download "))
             {
-                //ApplicationParameters.PackagesLocation = ApplicationParameters.PackagesDownloadLocation;
-                //if (config.PackagesDownloadLocation != null) { ApplicationParameters.PackagesLocation = config.PackagesDownloadLocation; }
+                ApplicationParameters.PackagesLocation = ApplicationParameters.PackagesDownloadLocation;
+                if (config.PackagesDownloadLocation != null) { ApplicationParameters.PackagesLocation = config.PackagesDownloadLocation; }
             }
         }
 
