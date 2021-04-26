@@ -20,6 +20,7 @@ namespace chocolatey.infrastructure.app.services
     using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Globalization;
+    using System.Reflection;
     using System.IO;
     using System.Linq;
     using System.Net;
@@ -696,12 +697,11 @@ Please see https://chocolatey.org/docs/troubleshooting for more
                 //   and '--force' was specified
                 if (downloadedPackage != null && (downloadedPackage.Version == availablePackage.Version) && config.Force)
                 {
-                    string downloadedNugetPkgFileName = string.Join(".", new string[] { downloadedPackage.Id.to_lower(), downloadedPackage.Version.ToString(), ApplicationParameters.NugetPackageExtensionName });
-                    string downloadedNugetPkgFilePath = _fileSystem.combine_paths(ApplicationParameters.PackagesLocation, downloadedNugetPkgFileName);
-                    string newPkgFileName = string.Join(".", new string[] { downloadedPackage.Id.to_lower(), ApplicationParameters.NugetPackageExtensionName });
-                    string newPkgFilePath = _fileSystem.combine_paths(ApplicationParameters.PackagesLocation, downloadedPackage.Id.to_lower(), downloadedNugetPkgFileName);
+                    prepare_existing_downloaded_package_for_backup(downloadedPackage);
+                    
+                    // Re-search pacakge
+                    downloadedPackage = packageManager.LocalRepository.FindPackage(packageName);
 
-                    _fileSystem.move_file(downloadedNugetPkgFilePath, newPkgFilePath);
                     var forcedResult = packageInstalls.GetOrAdd(packageName, new PackageResult(availablePackage, _fileSystem.combine_paths(ApplicationParameters.PackagesLocation, availablePackage.Id)));
                     forcedResult.Messages.Add(new ResultMessage(ResultType.Note, "Backing up and removing old version"));
 
@@ -756,6 +756,28 @@ Please see https://chocolatey.org/docs/troubleshooting for more
             }
 
             return packageInstalls;
+        }
+
+        public virtual void prepare_existing_downloaded_package_for_backup(IPackage downloadedPackage)
+        {
+            var pkgPathProperty = downloadedPackage.GetType().GetField("_packagePath", BindingFlags.NonPublic | BindingFlags.Instance);
+            string downloadedPackageRelPath = (String)pkgPathProperty.GetValue(downloadedPackage);
+            string downloadedNugetPkgFilePath = _fileSystem.combine_paths(ApplicationParameters.PackagesLocation, downloadedPackageRelPath);
+            string newPkgFileName = string.Join(".", new string[] { downloadedPackage.Id.to_lower(), ApplicationParameters.NugetPackageExtensionName });
+            string newPkgFilePath = _fileSystem.combine_paths(ApplicationParameters.PackagesLocation, downloadedPackage.Id.to_lower(), newPkgFileName);
+
+            if (downloadedNugetPkgFilePath != newPkgFilePath)
+            {
+                FaultTolerance.try_catch_with_logging_exception(
+                () => _fileSystem.delete_file(newPkgFilePath),
+                "Attempted to remove '{0}' but had an error:".format_with(newPkgFilePath),
+                logWarningInsteadOfError: false);
+            }
+            FaultTolerance.try_catch_with_logging_exception(
+                () => _fileSystem.move_file(downloadedNugetPkgFilePath, newPkgFilePath),
+                "Attempted to move '{0}' to: '{1}' but had an error:".format_with(downloadedNugetPkgFilePath, newPkgFilePath),
+                logWarningInsteadOfError: false);
+            
         }
 
         public virtual void remove_rollback_directory_if_exists(string packageName)
