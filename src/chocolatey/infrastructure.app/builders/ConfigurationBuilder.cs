@@ -392,6 +392,9 @@ namespace chocolatey.infrastructure.app.builders
                         .Add("c=|cache=|cachelocation=|cache-location=",
                              "CacheLocation - Location for download cache, defaults to %TEMP% or value in chocolatey.config file.",
                              option => config.CacheLocation = option.remove_surrounding_quotes())
+                        .Add("dl=|downloadlocation=|download-location=",
+                             "Download Location - Downloads specified packages to this dir, defaults to {0}".format_with(ApplicationParameters.PackagesDownloadLocation),
+                             option => config.CacheLocation = option.remove_surrounding_quotes())
                         .Add("allowunofficial|allow-unofficial|allowunofficialbuild|allow-unofficial-build",
                              "AllowUnofficialBuild - When not using the official build you must set this flag for choco to continue.",
                              option => config.AllowUnofficialBuild = option != null)

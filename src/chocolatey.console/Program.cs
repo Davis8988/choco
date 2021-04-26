@@ -87,7 +87,7 @@ namespace chocolatey.console
                 }
 
                 report_version_and_exit_if_requested(args, config);
-                update_packages_location_when_executing_download_command(args, config);
+                update_packages_location_on_download_command(args, config);
 
                 trap_exit_scenarios(config);
 
@@ -174,7 +174,7 @@ namespace chocolatey.console
             }
         }
 
-        private static void update_packages_location_when_executing_download_command(string[] args, ChocolateyConfiguration config)
+        private static void update_packages_location_on_download_command(string[] args, ChocolateyConfiguration config)
         {
             var commandLine = Environment.CommandLine;
             var firstArg = args.FirstOrDefault();
