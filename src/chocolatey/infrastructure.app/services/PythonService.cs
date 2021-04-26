@@ -335,7 +335,79 @@ namespace chocolatey.infrastructure.app.services
             this.Log().Info("Would have run '{0} {1}'".format_with(_exePath.escape_curly_braces(), args.escape_curly_braces()));
         }
 
+        public void download_noop(ChocolateyConfiguration config, Action<PackageResult> continueAction)
+        {
+            set_executable_path_if_not_set();
+            var args = build_args(config, _installArguments);
+            this.Log().Info("Would have run '{0} {1}'".format_with(_exePath.escape_curly_braces(), args.escape_curly_braces()));
+        }
+
         public ConcurrentDictionary<string, PackageResult> install_run(ChocolateyConfiguration config, Action<PackageResult> continueAction)
+        {
+            set_executable_path_if_not_set();
+            var args = build_args(config, _installArguments);
+            var packageResults = new ConcurrentDictionary<string, PackageResult>(StringComparer.InvariantCultureIgnoreCase);
+
+            foreach (var packageToInstall in config.PackageNames.Split(new[] { ApplicationParameters.PackageNamesSeparator }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                var pkgName = packageToInstall;
+                if (!string.IsNullOrWhiteSpace(config.Version))
+                {
+                    pkgName = "{0}=={1}".format_with(packageToInstall, config.Version);
+                }
+                var argsForPackage = args.Replace(PACKAGE_NAME_TOKEN, pkgName);
+
+                var exitCode = _commandExecutor.execute(
+                    _exePath,
+                    argsForPackage,
+                    config.CommandExecutionTimeoutSeconds,
+                    _fileSystem.get_current_directory(),
+                    (s, e) =>
+                    {
+                        var logMessage = e.Data;
+                        if (string.IsNullOrWhiteSpace(logMessage)) return;
+                        this.Log().Info(() => " [{0}] {1}".format_with(APP_NAME, logMessage.escape_curly_braces()));
+
+                        if (ErrorRegex.IsMatch(logMessage) || ErrorNotFoundRegex.IsMatch(logMessage))
+                        {
+                            var results = packageResults.GetOrAdd(packageToInstall, new PackageResult(packageToInstall, null, null));
+                            results.Messages.Add(new ResultMessage(ResultType.Error, logMessage));
+                        }
+
+                        if (InstalledRegex.IsMatch(logMessage))
+                        {
+                            var packageName = get_value_from_output(logMessage, PackageNameRegex, PACKAGE_NAME_GROUP);
+                            var results = packageResults.GetOrAdd(packageName, new PackageResult(packageName, null, null));
+                            results.Messages.Add(new ResultMessage(ResultType.Note, packageName));
+                            this.Log().Info(ChocolateyLoggers.Important, " {0} has been installed successfully.".format_with(string.IsNullOrWhiteSpace(packageName) ? packageToInstall : packageName));
+                        }
+                    },
+                    (s, e) =>
+                    {
+                        var logMessage = e.Data;
+                        if (string.IsNullOrWhiteSpace(logMessage)) return;
+                        this.Log().Error("[{0}] {1}".format_with(APP_NAME, logMessage.escape_curly_braces()));
+
+                        if (ErrorRegex.IsMatch(logMessage) || ErrorNotFoundRegex.IsMatch(logMessage))
+                        {
+                            var results = packageResults.GetOrAdd(packageToInstall, new PackageResult(packageToInstall, null, null));
+                            results.Messages.Add(new ResultMessage(ResultType.Error, logMessage));
+                        }
+                    },
+                    updateProcessPath: false,
+                    allowUseWindow: true
+                    );
+
+                if (exitCode != 0)
+                {
+                    Environment.ExitCode = exitCode;
+                }
+            }
+
+            return packageResults;
+        }
+
+        public ConcurrentDictionary<string, PackageResult> download_run(ChocolateyConfiguration config, Action<PackageResult> continueAction)
         {
             set_executable_path_if_not_set();
             var args = build_args(config, _installArguments);

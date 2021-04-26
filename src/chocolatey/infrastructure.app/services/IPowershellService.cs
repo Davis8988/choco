@@ -31,6 +31,12 @@ namespace chocolatey.infrastructure.app.services
         void install_noop(PackageResult packageResult);
 
         /// <summary>
+        ///   Noops the specified package download.
+        /// </summary>
+        /// <param name="packageResult">The package result.</param>
+        void download_noop(PackageResult packageResult);
+
+        /// <summary>
         ///   Installs the specified package.
         /// </summary>
         /// <param name="configuration">The configuration</param>

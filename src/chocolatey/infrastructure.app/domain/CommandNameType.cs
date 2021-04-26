@@ -22,5 +22,6 @@ namespace chocolatey.infrastructure.app.domain
         install,
         upgrade,
         uninstall,
+        download,
     }
 }

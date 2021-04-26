@@ -68,12 +68,27 @@ namespace chocolatey.infrastructure.app.services
         void install_noop(ChocolateyConfiguration config, Action<PackageResult> continueAction);
 
         /// <summary>
+        ///   Run download in noop mode
+        /// </summary>
+        /// <param name="config">The configuration.</param>
+        /// <param name="continueAction">The action to continue with for each noop test download.</param>
+        void download_noop(ChocolateyConfiguration config, Action<PackageResult> continueAction);
+
+        /// <summary>
         ///   Installs packages from the source feed
         /// </summary>
         /// <param name="config">The configuration.</param>
         /// <param name="continueAction">The action to continue with when install is successful.</param>
         /// <returns>results of installs</returns>
         ConcurrentDictionary<string, PackageResult> install_run(ChocolateyConfiguration config, Action<PackageResult> continueAction);
+
+        /// <summary>
+        ///   Downloads packages from the source feed
+        /// </summary>
+        /// <param name="config">The configuration.</param>
+        /// <param name="continueAction">The action to continue with when download is successful.</param>
+        /// <returns>results of downloads</returns>
+        ConcurrentDictionary<string, PackageResult> download_run(ChocolateyConfiguration config, Action<PackageResult> continueAction);
 
         /// <summary>
         ///   Run upgrade in noop mode

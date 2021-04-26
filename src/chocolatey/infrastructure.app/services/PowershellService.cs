@@ -104,6 +104,11 @@ namespace chocolatey.infrastructure.app.services
             noop_action(packageResult, CommandNameType.install);
         }
 
+        public void download_noop(PackageResult packageResult)
+        {
+            noop_action(packageResult, CommandNameType.install);
+        }
+
         public bool install(ChocolateyConfiguration configuration, PackageResult packageResult)
         {
             return run_action(configuration, packageResult, CommandNameType.install);

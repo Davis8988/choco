@@ -211,6 +211,12 @@ namespace chocolatey.infrastructure.app.services
             this.Log().Info("Would have run '{0} {1}'".format_with(get_exe(_rootDirectory).escape_curly_braces(), args.escape_curly_braces()));
         }
 
+        public void download_noop(ChocolateyConfiguration config, Action<PackageResult> continueAction)
+        {
+            var args = build_args(config, _installArguments);
+            this.Log().Info("Would have run '{0} {1}'".format_with(get_exe(_rootDirectory).escape_curly_braces(), args.escape_curly_braces()));
+        }
+
         public ConcurrentDictionary<string, PackageResult> install_run(ChocolateyConfiguration config, Action<PackageResult> continueAction)
         {
             var args = build_args(config, _installArguments);
@@ -245,6 +251,53 @@ namespace chocolatey.infrastructure.app.services
                             if (string.IsNullOrWhiteSpace(logMessage)) return;
                             this.Log().Error("[{0}] {1}".format_with(APP_NAME, logMessage.escape_curly_braces()));
                         },
+                    updateProcessPath: false,
+                    allowUseWindow: true
+                    );
+
+                if (exitCode != 0)
+                {
+                    Environment.ExitCode = exitCode;
+                }
+            }
+
+            return packageResults;
+        }
+
+        public ConcurrentDictionary<string, PackageResult> download_run(ChocolateyConfiguration config, Action<PackageResult> continueAction)
+        {
+            var args = build_args(config, _installArguments);
+            var packageResults = new ConcurrentDictionary<string, PackageResult>(StringComparer.InvariantCultureIgnoreCase);
+
+            foreach (var packageToInstall in config.PackageNames.Split(new[] { ApplicationParameters.PackageNamesSeparator }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                var argsForPackage = args.Replace(PACKAGE_NAME_TOKEN, packageToInstall);
+
+                var exitCode = _commandExecutor.execute(
+                    get_exe(_rootDirectory),
+                    argsForPackage,
+                    config.CommandExecutionTimeoutSeconds,
+                    _fileSystem.get_current_directory(),
+                    (s, e) =>
+                    {
+                        var logMessage = e.Data;
+                        if (string.IsNullOrWhiteSpace(logMessage)) return;
+                        this.Log().Info(() => " [{0}] {1}".format_with(APP_NAME, logMessage.escape_curly_braces()));
+
+                        if (InstalledRegex.IsMatch(logMessage))
+                        {
+                            var packageName = get_value_from_output(logMessage, PackageNameRegex, PACKAGE_NAME_GROUP);
+                            var results = packageResults.GetOrAdd(packageName, new PackageResult(packageName, null, null));
+                            results.Messages.Add(new ResultMessage(ResultType.Note, packageName));
+                            this.Log().Info(ChocolateyLoggers.Important, " {0} has been installed successfully.".format_with(string.IsNullOrWhiteSpace(packageName) ? packageToInstall : packageName));
+                        }
+                    },
+                    (s, e) =>
+                    {
+                        var logMessage = e.Data;
+                        if (string.IsNullOrWhiteSpace(logMessage)) return;
+                        this.Log().Error("[{0}] {1}".format_with(APP_NAME, logMessage.escape_curly_braces()));
+                    },
                     updateProcessPath: false,
                     allowUseWindow: true
                     );

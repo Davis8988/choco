@@ -193,6 +193,13 @@ namespace chocolatey.infrastructure.app.services
             this.Log().Info("Would have run '{0} {1}'".format_with(EXE_PATH.escape_curly_braces(), args.escape_curly_braces()));
         }
 
+        public void download_noop(ChocolateyConfiguration config, Action<PackageResult> continueAction)
+        {
+            var args = ExternalCommandArgsBuilder.build_arguments(config, _installArguments);
+            args = args.Replace(PACKAGE_NAME_TOKEN, config.PackageNames.Replace(';', ','));
+            this.Log().Info("Would have run '{0} {1}'".format_with(EXE_PATH.escape_curly_braces(), args.escape_curly_braces()));
+        }
+
         public ConcurrentDictionary<string, PackageResult> install_run(ChocolateyConfiguration config, Action<PackageResult> continueAction)
         {
             var packageResults = new ConcurrentDictionary<string, PackageResult>(StringComparer.InvariantCultureIgnoreCase);
@@ -244,6 +251,69 @@ namespace chocolatey.infrastructure.app.services
                                 results.Messages.Add(new ResultMessage(ResultType.Error, packageName));
                             }
                         },
+                    updateProcessPath: false
+                    );
+
+                if (exitCode != 0)
+                {
+                    Environment.ExitCode = exitCode;
+                }
+            }
+
+            return packageResults;
+        }
+
+        public ConcurrentDictionary<string, PackageResult> download_run(ChocolateyConfiguration config, Action<PackageResult> continueAction)
+        {
+            var packageResults = new ConcurrentDictionary<string, PackageResult>(StringComparer.InvariantCultureIgnoreCase);
+            var args = ExternalCommandArgsBuilder.build_arguments(config, _installArguments);
+
+            foreach (var packageToInstall in config.PackageNames.Split(new[] { ApplicationParameters.PackageNamesSeparator }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                var argsForPackage = args.Replace(PACKAGE_NAME_TOKEN, packageToInstall);
+                var exitCode = _commandExecutor.execute(
+                    EXE_PATH,
+                    argsForPackage,
+                    config.CommandExecutionTimeoutSeconds,
+                    (s, e) =>
+                    {
+                        var logMessage = e.Data;
+                        if (string.IsNullOrWhiteSpace(logMessage)) return;
+                        this.Log().Info(() => " [{0}] {1}".format_with(APP_NAME, logMessage.escape_curly_braces()));
+
+                        if (InstallingRegex.IsMatch(logMessage))
+                        {
+                            var packageName = get_value_from_output(logMessage, PackageNameFetchingRegex, PACKAGE_NAME_GROUP);
+                            var results = packageResults.GetOrAdd(packageName, new PackageResult(packageName, null, null));
+                            this.Log().Info(ChocolateyLoggers.Important, "{0}".format_with(packageName));
+                            return;
+                        }
+
+                        //if (string.IsNullOrWhiteSpace(packageName)) return;
+
+                        if (InstalledRegex.IsMatch(logMessage))
+                        {
+                            var packageName = get_value_from_output(logMessage, PackageNameInstalledRegex, PACKAGE_NAME_GROUP);
+                            var results = packageResults.GetOrAdd(packageName, new PackageResult(packageName, null, null));
+
+                            results.Messages.Add(new ResultMessage(ResultType.Note, packageName));
+                            this.Log().Info(ChocolateyLoggers.Important, " {0} has been installed successfully.".format_with(string.IsNullOrWhiteSpace(packageName) ? packageToInstall : packageName));
+                        }
+                    },
+                    (s, e) =>
+                    {
+                        var logMessage = e.Data;
+                        if (string.IsNullOrWhiteSpace(logMessage)) return;
+                        this.Log().Error("[{0}] {1}".format_with(APP_NAME, logMessage.escape_curly_braces()));
+
+                        var packageName = get_value_from_output(logMessage, PackageNameErrorRegex, PACKAGE_NAME_GROUP);
+
+                        if (ErrorNotFoundRegex.IsMatch(logMessage))
+                        {
+                            var results = packageResults.GetOrAdd(packageName, new PackageResult(packageName, null, null));
+                            results.Messages.Add(new ResultMessage(ResultType.Error, packageName));
+                        }
+                    },
                     updateProcessPath: false
                     );
 

@@ -375,6 +375,28 @@ folder.");
             ApplicationParameters.PackagesLocation = installLocation;
         }
 
+        public void download_noop(ChocolateyConfiguration config, Action<PackageResult> continueAction)
+        {
+            //todo: noop should see if packages are already installed and adjust message, amiright?!
+
+            this.Log().Info("{0} would have used NuGet to download packages (if they are not already installed):{1}{2}".format_with(
+                ApplicationParameters.Name,
+                Environment.NewLine,
+                config.PackageNames
+                                ));
+
+            var tempInstallsLocation = _fileSystem.combine_paths(_fileSystem.get_temp_path(), ApplicationParameters.Name, "TempInstalls_" + DateTime.Now.ToString("yyyyMMdd_HHmmss_ffff"));
+            _fileSystem.create_directory_if_not_exists(tempInstallsLocation);
+
+            var installLocation = ApplicationParameters.PackagesLocation;
+            ApplicationParameters.PackagesLocation = tempInstallsLocation;
+
+            install_run(config, continueAction);
+
+            _fileSystem.delete_directory(tempInstallsLocation, recursive: true);
+            ApplicationParameters.PackagesLocation = installLocation;
+        }
+
         public virtual ConcurrentDictionary<string, PackageResult> install_run(ChocolateyConfiguration config, Action<PackageResult> continueAction)
         {
             _fileSystem.create_directory_if_not_exists(ApplicationParameters.PackagesLocation);
@@ -526,6 +548,192 @@ Please see https://chocolatey.org/docs/troubleshooting for more
                     {
                         packageManager.InstallPackage(availablePackage, ignoreDependencies: config.IgnoreDependencies, allowPrereleaseVersions: config.Prerelease);
                         //packageManager.InstallPackage(packageName, version, configuration.IgnoreDependencies, configuration.Prerelease);
+                        remove_nuget_cache_for_package(availablePackage);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    var message = ex.Message;
+                    var webException = ex as System.Net.WebException;
+                    if (webException != null)
+                    {
+                        var response = webException.Response as HttpWebResponse;
+                        if (response != null && !string.IsNullOrWhiteSpace(response.StatusDescription)) message += " {0}".format_with(response.StatusDescription);
+                    }
+
+                    var logMessage = "{0} not installed. An error occurred during installation:{1} {2}".format_with(packageName, Environment.NewLine, message);
+                    this.Log().Error(ChocolateyLoggers.Important, logMessage);
+                    var errorResult = packageInstalls.GetOrAdd(packageName, new PackageResult(packageName, version.to_string(), null));
+                    errorResult.Messages.Add(new ResultMessage(ResultType.Error, logMessage));
+                    if (errorResult.ExitCode == 0) errorResult.ExitCode = 1;
+                    if (continueAction != null) continueAction.Invoke(errorResult);
+                }
+            }
+
+            return packageInstalls;
+        }
+
+        public virtual ConcurrentDictionary<string, PackageResult> download_run(ChocolateyConfiguration config, Action<PackageResult> continueAction)
+        {
+            this.Log().Debug("Ensuring download location path exists: \"{0}\"".format_with(config.PackagesDownloadLocation));
+            _fileSystem.create_directory_if_not_exists(config.PackagesDownloadLocation);
+            var packageInstalls = new ConcurrentDictionary<string, PackageResult>(StringComparer.InvariantCultureIgnoreCase);
+
+            //todo: handle all
+
+            SemanticVersion version = !string.IsNullOrWhiteSpace(config.Version) ? new SemanticVersion(config.Version) : null;
+            if (config.Force) config.AllowDowngrade = true;
+
+            IList<string> packageNames = config.PackageNames.Split(new[] { ApplicationParameters.PackageNamesSeparator }, StringSplitOptions.RemoveEmptyEntries).or_empty_list_if_null().ToList();
+            if (packageNames.Count == 1)
+            {
+                var packageName = packageNames.DefaultIfEmpty(string.Empty).FirstOrDefault();
+                if (packageName.EndsWith(Constants.PackageExtension) || packageName.EndsWith(Constants.ManifestExtension))
+                {
+                    this.Log().Debug("Updating source and package name to handle *.nupkg or *.nuspec file.");
+                    packageNames.Clear();
+
+                    config.Sources = _fileSystem.get_directory_name(_fileSystem.get_full_path(packageName));
+
+                    if (packageName.EndsWith(Constants.ManifestExtension))
+                    {
+                        packageNames.Add(_fileSystem.get_file_name_without_extension(packageName));
+
+                        this.Log().Debug("Building nuspec file prior to install.");
+                        config.Input = packageName;
+                        // build package
+                        pack_run(config);
+                    }
+                    else
+                    {
+                        var packageFile = new OptimizedZipPackage(_fileSystem.get_full_path(packageName));
+                        version = packageFile.Version;
+                        packageNames.Add(packageFile.Id);
+                    }
+                }
+            }
+
+            // this is when someone points the source directly at a nupkg
+            // e.g. -source c:\somelocation\somewhere\packagename.nupkg
+            if (config.Sources.to_string().EndsWith(Constants.PackageExtension))
+            {
+                config.Sources = _fileSystem.get_directory_name(_fileSystem.get_full_path(config.Sources));
+            }
+
+            config.PackagesLocation = config.PackagesDownloadLocation;
+            var packageManager = NugetCommon.GetPackageManager(
+              config,
+              _nugetLogger,
+              _packageDownloader,
+              installSuccessAction: (e) =>
+              {
+                  "chocolatey".Log().Debug("Finished downloading and extracting: {0} to: {1}".format_with(e.Package.Id, e.InstallPath));
+                  string downloadedNugetPkgFileName = string.Join(".", new string[] { e.Package.Id.to_lower(), ApplicationParameters.NugetPackageExtensionName });
+                  string downloadedNugetPkgFilePath = _fileSystem.combine_paths(e.InstallPath, downloadedNugetPkgFileName);
+                  string newPkgFileName = string.Join(".", new string [] {e.Package.Id.to_lower(), e.Package.Version.ToString(), ApplicationParameters.NugetPackageExtensionName });
+                  string newPkgFilePath = _fileSystem.combine_paths(config.PackagesLocation, newPkgFileName);
+                  
+                  "chocolatey".Log().Debug("Moving: {0} to: {1} and renaming to: {2}".format_with(downloadedNugetPkgFilePath, config.PackagesLocation, newPkgFileName));
+                  _fileSystem.move_file(downloadedNugetPkgFilePath, newPkgFilePath);
+                  "chocolatey".Log().Debug("Removing unnecessary extracted downloaded-package sources dir: {0} ".format_with(e.InstallPath));
+                  FaultTolerance.try_catch_with_logging_exception(
+                                       () => _fileSystem.delete_directory_if_exists(e.InstallPath, recursive: true),
+                                       "Unable to remove downloaded-package sources dir: {0} ".format_with(e.InstallPath));
+              },
+              uninstallSuccessAction: null,
+              addUninstallHandler: false);
+
+            var originalConfig = config;
+
+            foreach (string packageName in packageNames.or_empty_list_if_null())
+            {
+                // reset config each time through
+                config = originalConfig.deep_copy();
+
+                IPackage downloadedPackage = packageManager.LocalRepository.FindPackage(packageName);
+
+                // Package with required version already exists and '--force' was not specified
+                if (downloadedPackage != null && (version == null || version == downloadedPackage.Version) && !config.Force)
+                {
+                    string logMessage = "{0} v{1} already exists.{2} Use --force to re-download it or specify a different version to download.".format_with(downloadedPackage.Id, downloadedPackage.Version, Environment.NewLine);
+                    var nullResult = packageInstalls.GetOrAdd(packageName, new PackageResult(downloadedPackage, _fileSystem.combine_paths(config.PackagesLocation, downloadedPackage.Id)));
+                    nullResult.Messages.Add(new ResultMessage(ResultType.Inconclusive, logMessage));
+                    this.Log().Warn(ChocolateyLoggers.Important, logMessage);
+                    continue;
+                }
+
+                // Package with required version already exists and '--force' was specified
+                //   Update required version to download
+                if (downloadedPackage != null && (version == null || version == downloadedPackage.Version) && config.Force)
+                {
+                    this.Log().Warn(ChocolateyLoggers.Important, () => @"{0} v{1} already exists. Forcing re-download of version '{1}'.".format_with(downloadedPackage.Id, downloadedPackage.Version));
+                    version = downloadedPackage.Version;
+                }
+
+                // Locate the pacakge to download in specified source
+                IPackage availablePackage = NugetList.find_package(packageName, version, config, packageManager.SourceRepository);
+
+                // If package was not located
+                if (availablePackage == null)
+                {
+                    var logMessage = @"{0} not downloaded. The package was not found with the source(s) listed.
+ Source(s): '{1}'
+ NOTE: When you specify explicit sources, it overrides default sources.
+If the package version is a prerelease and you didn't specify `--pre`,
+ the package may not be found.{2}{3}".format_with(packageName, config.Sources, string.IsNullOrWhiteSpace(config.Version) ? String.Empty :
+@"
+Version was specified as '{0}'. It is possible that version 
+ does not exist for '{1}' at the source specified.".format_with(config.Version.to_string(), packageName),
+@"
+Please see https://chocolatey.org/docs/troubleshooting for more 
+ assistance.");
+                    this.Log().Error(ChocolateyLoggers.Important, logMessage);
+                    var noPkgResult = packageInstalls.GetOrAdd(packageName, new PackageResult(packageName, version.to_string(), null));
+                    noPkgResult.Messages.Add(new ResultMessage(ResultType.Error, logMessage));
+                    continue;
+                }
+
+                // Existing package has the same version as located package to download
+                //   and '--force' was specified
+                if (downloadedPackage != null && (downloadedPackage.Version == availablePackage.Version) && config.Force)
+                {
+                    string downloadedNugetPkgFileName = string.Join(".", new string[] { downloadedPackage.Id.to_lower(), downloadedPackage.Version.ToString(), ApplicationParameters.NugetPackageExtensionName });
+                    string downloadedNugetPkgFilePath = _fileSystem.combine_paths(config.PackagesLocation, downloadedNugetPkgFileName);
+                    string newPkgFileName = string.Join(".", new string[] { downloadedPackage.Id.to_lower(), ApplicationParameters.NugetPackageExtensionName });
+                    string newPkgFilePath = _fileSystem.combine_paths(config.PackagesLocation, downloadedPackage.Id.to_lower(), downloadedNugetPkgFileName);
+
+                    _fileSystem.move_file(downloadedNugetPkgFilePath, newPkgFilePath);
+                    var forcedResult = packageInstalls.GetOrAdd(packageName, new PackageResult(availablePackage, _fileSystem.combine_paths(config.PackagesLocation, availablePackage.Id)));
+                    forcedResult.Messages.Add(new ResultMessage(ResultType.Note, "Backing up and removing old version"));
+
+                    remove_rollback_directory_if_exists(packageName);
+                    backup_existing_version(config, downloadedPackage, _packageInfoService.get_package_information(downloadedPackage));
+
+                    try
+                    {
+                        packageManager.UninstallPackage(downloadedPackage, forceRemove: config.Force, removeDependencies: config.ForceDependencies);
+                        if (!forcedResult.InstallLocation.is_equal_to(config.PackagesLocation))
+                        {
+                            _fileSystem.delete_directory_if_exists(forcedResult.InstallLocation, recursive: true);
+                        }
+                        remove_cache_for_package(config, downloadedPackage);
+                    }
+                    catch (Exception ex)
+                    {
+                        string logMessage = "{0}:{1} {2}".format_with("Unable to remove existing package prior to forced reinstall", Environment.NewLine, ex.Message);
+                        this.Log().Warn(logMessage);
+                        forcedResult.Messages.Add(new ResultMessage(ResultType.Inconclusive, logMessage));
+                    }
+                }
+
+                try
+                {
+                    using (packageManager.SourceRepository.StartOperation(
+                        RepositoryOperationNames.Install,
+                        packageName,
+                        version == null ? null : version.ToString()))
+                    {
+                        packageManager.InstallPackage(availablePackage, ignoreDependencies: config.IgnoreDependencies, allowPrereleaseVersions: config.Prerelease);
                         remove_nuget_cache_for_package(availablePackage);
                     }
                 }

@@ -300,8 +300,21 @@ Did you know Pro / Business automatically syncs with Programs and
 
                 perform_source_runner_action(packageConfig, r => r.install_noop(packageConfig, action));
             }
+        }
 
-            randomly_notify_about_pro_business(config);
+        public void download_noop(ChocolateyConfiguration config)
+        {
+            // each package can specify its own configuration values
+            foreach (var packageConfig in set_config_from_package_names_and_packages_config(config, new ConcurrentDictionary<string, PackageResult>()).or_empty_list_if_null())
+            {
+                Action<PackageResult> action = null;
+                if (packageConfig.SourceType == SourceType.normal)
+                {
+                    action = (pkg) => _powershellService.download_noop(pkg);
+                }
+
+                perform_source_runner_action(packageConfig, r => r.download_noop(packageConfig, action));
+            }
         }
 
         /// <summary>
@@ -603,7 +616,54 @@ package '{0}' - stopping further execution".format_with(packageResult.Name));
                     Environment.ExitCode = 1;
                 }
 
-                randomly_notify_about_pro_business(config);
+            }
+
+            return packageInstalls;
+        }
+
+        public virtual ConcurrentDictionary<string, PackageResult> download_run(ChocolateyConfiguration config)
+        {
+            this.Log().Info(is_packages_config_file(config.PackageNames) ? @"Downloading from config file:" : @"Downloading the following packages:");
+            this.Log().Info(ChocolateyLoggers.Important, @"{0}".format_with(config.PackageNames));
+            this.Log().Info("to location: \"{0}\"".format_with(config.PackagesDownloadLocation));
+
+            var packageInstalls = new ConcurrentDictionary<string, PackageResult>();
+
+            if (string.IsNullOrWhiteSpace(config.Sources))
+            {
+                this.Log().Error(ChocolateyLoggers.Important, @"Download was NOT successful. There are no sources enabled for packages and none were passed as arguments.");
+                Environment.ExitCode = 1;
+                return packageInstalls;
+            }
+
+            get_environment_before(config, allowLogging: true);
+
+            try
+            {
+                foreach (var packageConfig in set_config_from_package_names_and_packages_config(config, packageInstalls).or_empty_list_if_null())
+                {
+                    Action<PackageResult> action = null;
+                    if (packageConfig.SourceType == SourceType.normal)
+                    {
+                        action = (packageResult) => handle_package_result(packageResult, packageConfig, CommandNameType.download);
+                    }
+
+                    var results = perform_source_runner_function(packageConfig, r => r.download_run(packageConfig, action));
+
+                    foreach (var result in results)
+                    {
+                        packageInstalls.GetOrAdd(result.Key, result.Value);
+                    }
+                }
+            }
+            finally
+            {
+                var installFailures = report_action_summary(packageInstalls, "downloaded");
+                if (installFailures != 0 && Environment.ExitCode == 0)
+                {
+                    Environment.ExitCode = 1;
+                }
+
             }
 
             return packageInstalls;

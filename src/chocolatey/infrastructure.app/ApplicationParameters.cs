@@ -60,6 +60,10 @@ namespace chocolatey.infrastructure.app
         public static readonly string PackageNamesSeparator = ";";
         public static readonly string OfficialChocolateyPublicKey = "79d02ea9cad655eb";
 
+        public static string PackagesDownloadLocation = _fileSystem.combine_paths( 
+                !string.IsNullOrWhiteSpace(System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData, System.Environment.SpecialFolderOption.DoNotVerify)) ?
+                System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData, System.Environment.SpecialFolderOption.DoNotVerify)
+                 : "C:\\", "MyChocoPackagesDownloads");
         public static string PackagesLocation = _fileSystem.combine_paths(InstallLocation, "lib");
         public static readonly string PackageFailuresLocation = _fileSystem.combine_paths(InstallLocation, "lib-bad");
         public static readonly string PackageBackupLocation = _fileSystem.combine_paths(InstallLocation, "lib-bkp");
@@ -78,6 +82,7 @@ namespace chocolatey.infrastructure.app
         public static readonly string PowerShellModulePathProcessProgramFiles = _fileSystem.combine_paths(System.Environment.GetFolderPath(System.Environment.SpecialFolder.ProgramFiles), "WindowsPowerShell\\Modules");
         public static readonly string PowerShellModulePathProcessDocuments = _fileSystem.combine_paths(System.Environment.GetFolderPath(System.Environment.SpecialFolder.MyDocuments), "WindowsPowerShell\\Modules");
         public static readonly string LocalSystemSidString = "S-1-5-18";
+        public static readonly string NugetPackageExtensionName = "nupkg";
         public static readonly SecurityIdentifier LocalSystemSid = new SecurityIdentifier(LocalSystemSidString);
 
         public static class Environment

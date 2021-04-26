@@ -73,6 +73,7 @@
     <Compile Include="infrastructure.app\attributes\CommandForAttributeSpecs.cs" />
     <Compile Include="infrastructure.app\commands\ChocolateyApiKeyCommandSpecs.cs" />
     <Compile Include="infrastructure.app\commands\ChocolateyConfigCommandSpecs.cs" />
+    <Compile Include="infrastructure.app\commands\ChocolateyDownloadCommandSpecs.cs" />
     <Compile Include="infrastructure.app\commands\ChocolateyFeatureCommandSpecs.cs" />
     <Compile Include="infrastructure.app\commands\ChocolateyInfoCommandSpecs.cs" />
     <Compile Include="infrastructure.app\commands\ChocolateyInstallCommandSpecs.cs" />

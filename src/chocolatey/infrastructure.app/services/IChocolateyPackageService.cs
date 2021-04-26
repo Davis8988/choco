@@ -84,11 +84,24 @@ namespace chocolatey.infrastructure.app.services
         void install_noop(ChocolateyConfiguration config);
 
         /// <summary>
+        ///   Run download in noop mode
+        /// </summary>
+        /// <param name="config">The configuration.</param>
+        void download_noop(ChocolateyConfiguration config);
+
+        /// <summary>
         ///   Installs packages
         /// </summary>
         /// <param name="config">The configuration.</param>
         /// <returns>results of installs</returns>
         ConcurrentDictionary<string, PackageResult> install_run(ChocolateyConfiguration config);
+
+        /// <summary>
+        ///   Downloads packages
+        /// </summary>
+        /// <param name="config">The configuration.</param>
+        /// <returns>results of downloads</returns>
+        ConcurrentDictionary<string, PackageResult> download_run(ChocolateyConfiguration config);
 
         /// <summary>
         ///  Run outdated in noop mode
