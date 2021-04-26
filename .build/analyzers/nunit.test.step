@@ -101,6 +101,7 @@
     <if test="${dlls.test != ''}">
       <property name="tests.ran" value="true" />
       <echo level="Warning" message="Running tests using NUnit and putting results in ${dirs.test_results}. Test Arguments: '${args.test_runner}'."/>
+      <echo level="Warning" message="Executing: '${app.test.console}' '${args.test_runner}'"/>
       <exec
           program="${app.test.console}"
           workingdir="${dirs.build.code}"

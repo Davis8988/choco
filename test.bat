@@ -3,6 +3,8 @@
 ::Project UppercuT - http://uppercut.googlecode.com
 ::No edits to this file are required - http://uppercut.pbwiki.com
 
+pushd "%~dp0"
+
 if '%2' NEQ '' goto usage
 if '%3' NEQ '' goto usage
 if '%1' == '/?' goto usage
@@ -33,6 +35,10 @@ echo.
 goto finish
 
 :errors
+echo Errors Found
+pause
 EXIT /B %ERRORLEVEL%
 
 :finish
+echo Finished successfully
+pause

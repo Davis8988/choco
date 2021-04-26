@@ -630,7 +630,8 @@ Please see https://chocolatey.org/docs/troubleshooting for more
                   "chocolatey".Log().Debug("Finished downloading and extracting: {0} to: {1}".format_with(e.Package.Id, e.InstallPath));
                   string downloadedNugetPkgFileName = string.Join("", new string[] { e.Package.Id.to_lower(), Constants.PackageExtension });
                   string downloadedNugetPkgFilePath = _fileSystem.combine_paths(e.InstallPath, downloadedNugetPkgFileName);
-                  string newPkgFileName = string.Join("", new string [] {e.Package.Id.to_lower(), e.Package.Version.ToString(), Constants.PackageExtension });
+                  string newPkgFileNamePart = string.Join(".", new string[] { e.Package.Id.to_lower(), e.Package.Version.ToString() });
+                  string newPkgFileName = string.Join("", new string [] { newPkgFileNamePart, Constants.PackageExtension });
                   string newPkgFilePath = _fileSystem.combine_paths(ApplicationParameters.PackagesLocation, newPkgFileName);
                   
                   "chocolatey".Log().Debug("Moving: {0} to: {1} and renaming to: {2}".format_with(downloadedNugetPkgFilePath, ApplicationParameters.PackagesLocation, newPkgFileName));
