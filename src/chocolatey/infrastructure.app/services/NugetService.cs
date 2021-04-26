@@ -575,8 +575,8 @@ Please see https://chocolatey.org/docs/troubleshooting for more
 
         public virtual ConcurrentDictionary<string, PackageResult> download_run(ChocolateyConfiguration config, Action<PackageResult> continueAction)
         {
-            this.Log().Debug("Ensuring download location path exists: \"{0}\"".format_with(config.PackagesDownloadLocation));
-            _fileSystem.create_directory_if_not_exists(config.PackagesDownloadLocation);
+            this.Log().Debug("Ensuring download location path exists: \"{0}\"".format_with(ApplicationParameters.PackagesLocation));
+            _fileSystem.create_directory_if_not_exists(ApplicationParameters.PackagesLocation);
             var packageInstalls = new ConcurrentDictionary<string, PackageResult>(StringComparer.InvariantCultureIgnoreCase);
 
             //todo: handle all

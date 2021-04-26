@@ -142,7 +142,6 @@ NOTE: Hiding sensitive configuration data! Please double and triple
 
         // configuration set variables
         public string CacheLocation { get; set; }
-        public string PackagesDownloadLocation { get; set; }
         public string PackagesLocation { get; set; }
         public bool ContainsLegacyPackageInstalls { get; set; }
         public int CommandExecutionTimeoutSeconds { get; set; }

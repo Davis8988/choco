@@ -207,7 +207,6 @@ namespace chocolatey.infrastructure.app.builders
 
         private static void set_config_items(ChocolateyConfiguration config, ConfigFileSettings configFileSettings, IFileSystem fileSystem)
         {
-            config.PackagesDownloadLocation = ApplicationParameters.PackagesDownloadLocation;
             config.CacheLocation = Environment.ExpandEnvironmentVariables(set_config_item(ApplicationParameters.ConfigSettings.CacheLocation, configFileSettings, string.IsNullOrWhiteSpace(configFileSettings.CacheLocation) ? string.Empty : configFileSettings.CacheLocation, "Cache location if not TEMP folder. Replaces `$env:TEMP` value for choco.exe process. It is highly recommended this be set to make Chocolatey more deterministic in cleanup."));
             if (string.IsNullOrWhiteSpace(config.CacheLocation)) {
                 config.CacheLocation = fileSystem.get_temp_path(); // System.Environment.GetEnvironmentVariable("TEMP");

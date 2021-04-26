@@ -40,9 +40,6 @@ namespace chocolatey.infrastructure.app.commands
         public virtual void configure_argument_parser(OptionSet optionSet, ChocolateyConfiguration configuration)
         {
             optionSet
-                .Add("dl=|downloadlocation=",
-                     "Download Location - Downloads specified packages to this dir.",
-                     option => configuration.PackagesDownloadLocation = option.remove_surrounding_quotes())
                 .Add("s=|source=",
                      "Source - The source to find the package(s) to download. Special sources include: ruby, webpi, cygwin, windowsfeatures, and python. To specify more than one source, pass it with a semi-colon separating the values (e.g. \"'source1;source2'\"). Defaults to default feeds.",
                      option => configuration.Sources = option.remove_surrounding_quotes())

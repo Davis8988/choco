@@ -625,7 +625,7 @@ package '{0}' - stopping further execution".format_with(packageResult.Name));
         {
             this.Log().Info(is_packages_config_file(config.PackageNames) ? @"Downloading from config file:" : @"Downloading the following packages:");
             this.Log().Info(ChocolateyLoggers.Important, @"{0}".format_with(config.PackageNames));
-            this.Log().Info("to location: \"{0}\"".format_with(config.PackagesDownloadLocation));
+            this.Log().Info("to location: \"{0}\"".format_with(ApplicationParameters.PackagesLocation));
 
             var packageInstalls = new ConcurrentDictionary<string, PackageResult>();
 
