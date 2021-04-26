@@ -394,7 +394,7 @@ namespace chocolatey.infrastructure.app.builders
                              option => config.CacheLocation = option.remove_surrounding_quotes())
                         .Add("dl=|downloadlocation=|download-location=",
                              "Download Location - Downloads specified packages to this dir, defaults to {0}".format_with(ApplicationParameters.PackagesDownloadLocation),
-                             option => config.CacheLocation = option.remove_surrounding_quotes())
+                             option => config.PackagesDownloadLocation = option.remove_surrounding_quotes())
                         .Add("allowunofficial|allow-unofficial|allowunofficialbuild|allow-unofficial-build",
                              "AllowUnofficialBuild - When not using the official build you must set this flag for choco to continue.",
                              option => config.AllowUnofficialBuild = option != null)
