@@ -620,7 +620,6 @@ Please see https://chocolatey.org/docs/troubleshooting for more
                 config.Sources = _fileSystem.get_directory_name(_fileSystem.get_full_path(config.Sources));
             }
 
-            config.PackagesLocation = config.PackagesDownloadLocation;
             var packageManager = NugetCommon.GetPackageManager(
               config,
               _nugetLogger,
@@ -631,9 +630,9 @@ Please see https://chocolatey.org/docs/troubleshooting for more
                   string downloadedNugetPkgFileName = string.Join(".", new string[] { e.Package.Id.to_lower(), ApplicationParameters.NugetPackageExtensionName });
                   string downloadedNugetPkgFilePath = _fileSystem.combine_paths(e.InstallPath, downloadedNugetPkgFileName);
                   string newPkgFileName = string.Join(".", new string [] {e.Package.Id.to_lower(), e.Package.Version.ToString(), ApplicationParameters.NugetPackageExtensionName });
-                  string newPkgFilePath = _fileSystem.combine_paths(config.PackagesLocation, newPkgFileName);
+                  string newPkgFilePath = _fileSystem.combine_paths(ApplicationParameters.PackagesLocation, newPkgFileName);
                   
-                  "chocolatey".Log().Debug("Moving: {0} to: {1} and renaming to: {2}".format_with(downloadedNugetPkgFilePath, config.PackagesLocation, newPkgFileName));
+                  "chocolatey".Log().Debug("Moving: {0} to: {1} and renaming to: {2}".format_with(downloadedNugetPkgFilePath, ApplicationParameters.PackagesLocation, newPkgFileName));
                   _fileSystem.move_file(downloadedNugetPkgFilePath, newPkgFilePath);
                   "chocolatey".Log().Debug("Removing unnecessary extracted downloaded-package sources dir: {0} ".format_with(e.InstallPath));
                   FaultTolerance.try_catch_with_logging_exception(
@@ -656,7 +655,7 @@ Please see https://chocolatey.org/docs/troubleshooting for more
                 if (downloadedPackage != null && (version == null || version == downloadedPackage.Version) && !config.Force)
                 {
                     string logMessage = "{0} v{1} already exists.{2} Use --force to re-download it or specify a different version to download.".format_with(downloadedPackage.Id, downloadedPackage.Version, Environment.NewLine);
-                    var nullResult = packageInstalls.GetOrAdd(packageName, new PackageResult(downloadedPackage, _fileSystem.combine_paths(config.PackagesLocation, downloadedPackage.Id)));
+                    var nullResult = packageInstalls.GetOrAdd(packageName, new PackageResult(downloadedPackage, _fileSystem.combine_paths(ApplicationParameters.PackagesLocation, downloadedPackage.Id)));
                     nullResult.Messages.Add(new ResultMessage(ResultType.Inconclusive, logMessage));
                     this.Log().Warn(ChocolateyLoggers.Important, logMessage);
                     continue;
@@ -698,12 +697,12 @@ Please see https://chocolatey.org/docs/troubleshooting for more
                 if (downloadedPackage != null && (downloadedPackage.Version == availablePackage.Version) && config.Force)
                 {
                     string downloadedNugetPkgFileName = string.Join(".", new string[] { downloadedPackage.Id.to_lower(), downloadedPackage.Version.ToString(), ApplicationParameters.NugetPackageExtensionName });
-                    string downloadedNugetPkgFilePath = _fileSystem.combine_paths(config.PackagesLocation, downloadedNugetPkgFileName);
+                    string downloadedNugetPkgFilePath = _fileSystem.combine_paths(ApplicationParameters.PackagesLocation, downloadedNugetPkgFileName);
                     string newPkgFileName = string.Join(".", new string[] { downloadedPackage.Id.to_lower(), ApplicationParameters.NugetPackageExtensionName });
-                    string newPkgFilePath = _fileSystem.combine_paths(config.PackagesLocation, downloadedPackage.Id.to_lower(), downloadedNugetPkgFileName);
+                    string newPkgFilePath = _fileSystem.combine_paths(ApplicationParameters.PackagesLocation, downloadedPackage.Id.to_lower(), downloadedNugetPkgFileName);
 
                     _fileSystem.move_file(downloadedNugetPkgFilePath, newPkgFilePath);
-                    var forcedResult = packageInstalls.GetOrAdd(packageName, new PackageResult(availablePackage, _fileSystem.combine_paths(config.PackagesLocation, availablePackage.Id)));
+                    var forcedResult = packageInstalls.GetOrAdd(packageName, new PackageResult(availablePackage, _fileSystem.combine_paths(ApplicationParameters.PackagesLocation, availablePackage.Id)));
                     forcedResult.Messages.Add(new ResultMessage(ResultType.Note, "Backing up and removing old version"));
 
                     remove_rollback_directory_if_exists(packageName);
@@ -712,7 +711,7 @@ Please see https://chocolatey.org/docs/troubleshooting for more
                     try
                     {
                         packageManager.UninstallPackage(downloadedPackage, forceRemove: config.Force, removeDependencies: config.ForceDependencies);
-                        if (!forcedResult.InstallLocation.is_equal_to(config.PackagesLocation))
+                        if (!forcedResult.InstallLocation.is_equal_to(ApplicationParameters.PackagesLocation))
                         {
                             _fileSystem.delete_directory_if_exists(forcedResult.InstallLocation, recursive: true);
                         }
