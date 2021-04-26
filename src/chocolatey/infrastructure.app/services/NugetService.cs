@@ -774,7 +774,7 @@ Please see https://chocolatey.org/docs/troubleshooting for more
                 "Attempted to remove '{0}' but had an error:".format_with(newPkgFilePath),
                 logWarningInsteadOfError: false);
             }
-            if (_fileSystem.file_exists(newPkgFilePath))
+            if (_fileSystem.file_exists(downloadedNugetPkgFilePath))
             {
                 FaultTolerance.try_catch_with_logging_exception(
                 () => _fileSystem.move_file(downloadedNugetPkgFilePath, newPkgFilePath),
