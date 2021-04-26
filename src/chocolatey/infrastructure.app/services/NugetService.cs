@@ -760,6 +760,7 @@ Please see https://chocolatey.org/docs/troubleshooting for more
 
         public virtual void prepare_existing_downloaded_package_for_backup(IPackage downloadedPackage)
         {
+            // Extract location of current downloaded package
             var pkgPathProperty = downloadedPackage.GetType().GetField("_packagePath", BindingFlags.NonPublic | BindingFlags.Instance);
             string downloadedPackageRelPath = (String)pkgPathProperty.GetValue(downloadedPackage);
             string downloadedNugetPkgFilePath = _fileSystem.combine_paths(ApplicationParameters.PackagesLocation, downloadedPackageRelPath);
