@@ -155,8 +155,8 @@ namespace chocolatey.infrastructure.app.services
                     string downloadUrl = "n/a";
                     try
                     {
-                        this.Log().Debug("Attempting to extract 'DownloadUrl' property from list package result");
-                        downloadUrl = (package.GetType().GetProperty("DownloadUrl").GetValue(package, null) != null) ? package.GetType().GetProperty("DownloadUrl").GetValue(package, null).ToString() : "";
+                        this.Log().Debug("Attempting to extract '{0}' property from list of packages result".format_with(ApplicationParameters.NugetPackageDownloadUrlPropertyName));
+                        downloadUrl = (package.GetType().GetProperty(ApplicationParameters.NugetPackageDownloadUrlPropertyName).GetValue(package, null) != null) ? package.GetType().GetProperty(ApplicationParameters.NugetPackageDownloadUrlPropertyName).GetValue(package, null).ToString() : "";
                     } catch(Exception e)
                     {
                         this.Log().Debug(e.ToString());
@@ -552,6 +552,18 @@ Please see https://chocolatey.org/docs/troubleshooting for more
 
                 try
                 {
+                    try
+                    {
+                        string downloadUrl = null;
+                        this.Log().Debug("Attempting to extract '{0}' property from 'availablePackage' obj of package: {1} to install".format_with(ApplicationParameters.NugetPackageDownloadUrlPropertyName, availablePackage.Id));
+                        downloadUrl = (availablePackage.GetType().GetProperty(ApplicationParameters.NugetPackageDownloadUrlPropertyName).GetValue(availablePackage, null) != null) ? availablePackage.GetType().GetProperty(ApplicationParameters.NugetPackageDownloadUrlPropertyName).GetValue(availablePackage, null).ToString() : "";
+                        if (downloadUrl != null) { this.Log().Info("Installing {0}-{1} from: {2}".format_with(availablePackage.Id, availablePackage.Version.ToString(), downloadUrl)); }
+                    }
+                    catch (Exception e)
+                    {
+                        this.Log().Debug("Minor failure during attempt to extract '{0}' property from 'availablePackage' obj of package: {1} to install: {2}. Continuing..".format_with(ApplicationParameters.NugetPackageDownloadUrlPropertyName, availablePackage.Id, e.ToString()));
+                    }
+                    
                     using (packageManager.SourceRepository.StartOperation(
                         RepositoryOperationNames.Install,
                         packageName,
@@ -730,7 +742,7 @@ Please see https://chocolatey.org/docs/troubleshooting for more
                     }
                     catch (Exception ex)
                     {
-                        string logMessage = "{0}:{1} {2}".format_with("Unable to remove existing package prior to forced reinstall", Environment.NewLine, ex.Message);
+                        string logMessage = "{0}:{1} {2}".format_with("Unable to remove existing package prior to forced re-download", Environment.NewLine, ex.Message);
                         this.Log().Warn(logMessage);
                         forcedResult.Messages.Add(new ResultMessage(ResultType.Inconclusive, logMessage));
                     }
@@ -738,6 +750,18 @@ Please see https://chocolatey.org/docs/troubleshooting for more
 
                 try
                 {
+                    try
+                    {
+                        string downloadUrl = null;
+                        this.Log().Debug("Attempting to extract '{0}' property from 'availablePackage' obj of package: {1} to download".format_with(ApplicationParameters.NugetPackageDownloadUrlPropertyName, availablePackage.Id));
+                        downloadUrl = (availablePackage.GetType().GetProperty(ApplicationParameters.NugetPackageDownloadUrlPropertyName).GetValue(availablePackage, null) != null) ? availablePackage.GetType().GetProperty(ApplicationParameters.NugetPackageDownloadUrlPropertyName).GetValue(availablePackage, null).ToString() : "";
+                        if (downloadUrl != null) { this.Log().Info("Downloading {0}-{1} from: {2}".format_with(availablePackage.Id, availablePackage.Version.ToString(), downloadUrl)); }
+                    }
+                    catch (Exception e)
+                    {
+                        this.Log().Debug("Minor failure during attempt to extract '{0}' property from 'availablePackage' obj of package: {1} to download: {2}. Continuing..".format_with(ApplicationParameters.NugetPackageDownloadUrlPropertyName, availablePackage.Id, e.ToString()));
+                    }
+
                     using (packageManager.SourceRepository.StartOperation(
                         RepositoryOperationNames.Install,
                         packageName,
@@ -757,7 +781,7 @@ Please see https://chocolatey.org/docs/troubleshooting for more
                         if (response != null && !string.IsNullOrWhiteSpace(response.StatusDescription)) message += " {0}".format_with(response.StatusDescription);
                     }
 
-                    var logMessage = "{0} not installed. An error occurred during installation:{1} {2}".format_with(packageName, Environment.NewLine, message);
+                    var logMessage = "{0} not installed. An error occurred during download of:{1} {2}".format_with(packageName, Environment.NewLine, message);
                     this.Log().Error(ChocolateyLoggers.Important, logMessage);
                     var errorResult = packageInstalls.GetOrAdd(packageName, new PackageResult(packageName, version.to_string(), null));
                     errorResult.Messages.Add(new ResultMessage(ResultType.Error, logMessage));
@@ -1063,6 +1087,17 @@ Please see https://chocolatey.org/docs/troubleshooting for more
                     {
                         try
                         {
+                            try
+                            {
+                                string downloadUrl = null;
+                                this.Log().Debug("Attempting to extract '{0}' property from 'availablePackage' obj of package: {1} to upgrade".format_with(ApplicationParameters.NugetPackageDownloadUrlPropertyName, availablePackage.Id));
+                                downloadUrl = (availablePackage.GetType().GetProperty(ApplicationParameters.NugetPackageDownloadUrlPropertyName).GetValue(availablePackage, null) != null) ? availablePackage.GetType().GetProperty(ApplicationParameters.NugetPackageDownloadUrlPropertyName).GetValue(availablePackage, null).ToString() : "";
+                                if (downloadUrl != null) { this.Log().Info("Upgrading to: {0}-{1} from: {2}".format_with(availablePackage.Id, availablePackage.Version.ToString(), downloadUrl)); }
+                            }
+                            catch (Exception e)
+                            {
+                                this.Log().Debug("Minor failure during attempt to extract '{0}' property from 'availablePackage' obj of package: {1} to upgrade: {2}. Continuing..".format_with(ApplicationParameters.NugetPackageDownloadUrlPropertyName, availablePackage.Id, e.ToString()));
+                            }
                             using (packageManager.SourceRepository.StartOperation(
                                 RepositoryOperationNames.Update,
                                 packageName,

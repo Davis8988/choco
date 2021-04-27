@@ -83,6 +83,7 @@ namespace chocolatey.infrastructure.app
         public static readonly string PowerShellModulePathProcessDocuments = _fileSystem.combine_paths(System.Environment.GetFolderPath(System.Environment.SpecialFolder.MyDocuments), "WindowsPowerShell\\Modules");
         public static readonly string LocalSystemSidString = "S-1-5-18";
         public static readonly SecurityIdentifier LocalSystemSid = new SecurityIdentifier(LocalSystemSidString);
+        public static readonly string NugetPackageDownloadUrlPropertyName = "DownloadUrl";
 
         public static class Environment
         {
