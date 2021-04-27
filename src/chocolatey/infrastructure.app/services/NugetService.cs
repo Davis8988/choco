@@ -152,6 +152,15 @@ namespace chocolatey.infrastructure.app.services
                 if (!config.QuietOutput)
                 {
                     var logger = config.Verbose ? ChocolateyLoggers.Important : ChocolateyLoggers.Normal;
+                    string downloadUrl = "n/a";
+                    try
+                    {
+                        this.Log().Debug("Attempting to extract 'DownloadUrl' property from list package result");
+                        downloadUrl = (package.GetType().GetProperty("DownloadUrl").GetValue(package, null) != null) ? package.GetType().GetProperty("DownloadUrl").GetValue(package, null).ToString() : "";
+                    } catch(Exception e)
+                    {
+                        this.Log().Debug(e.ToString());
+                    }
 
                     if (config.RegularOutput)
                     {
@@ -166,12 +175,12 @@ namespace chocolatey.infrastructure.app.services
                         if (config.Verbose && !config.ListCommand.IdOnly) this.Log().Info(() =>
                             @" Title: {0} | Published: {1}{2}{3}
  Number of Downloads: {4} | Downloads for this version: {5}
- Package url
- Chocolatey Package Source: {6}{7}
- Tags: {8}
- Software Site: {9}
- Software License: {10}{11}{12}{13}{14}{15}
- Description: {16}{17}
+ Package url: {6}
+ Chocolatey Package Source: {7}{8}
+ Tags: {9}
+ Software Site: {10}
+ Software License: {11}{12}{13}{14}{15}{16}
+ Description: {17}{18}
 ".format_with(
                                 package.Title.escape_curly_braces(),
                                 package.Published.GetValueOrDefault().UtcDateTime.ToShortDateString(),
@@ -187,6 +196,7 @@ namespace chocolatey.infrastructure.app.services
                                     ),
                                 package.DownloadCount <= 0 ? "n/a" : package.DownloadCount.to_string(),
                                 package.VersionDownloadCount <= 0 ? "n/a" : package.VersionDownloadCount.to_string(),
+                                downloadUrl,
                                 package.PackageSourceUrl != null && !string.IsNullOrWhiteSpace(package.PackageSourceUrl.to_string()) ? package.PackageSourceUrl.to_string() : "n/a",
                                 string.IsNullOrWhiteSpace(package.PackageHash) ? string.Empty : "{0} Package Checksum: '{1}' ({2})".format_with(
                                         Environment.NewLine,
