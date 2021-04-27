@@ -111,18 +111,6 @@ namespace chocolatey.tests.infrastructure.app.commands
             }
 
             [Fact]
-            public void should_add_installargs_to_the_option_set()
-            {
-                optionSet.Contains("installarguments").ShouldBeTrue();
-            }
-
-            [Fact]
-            public void should_add_short_version_of_installargs_to_the_option_set()
-            {
-                optionSet.Contains("ia").ShouldBeTrue();
-            }
-
-            [Fact]
             public void should_add_overrideargs_to_the_option_set()
             {
                 optionSet.Contains("overridearguments").ShouldBeTrue();
@@ -150,24 +138,6 @@ namespace chocolatey.tests.infrastructure.app.commands
             public void should_add_short_version_of_packageparameters_to_the_option_set()
             {
                 optionSet.Contains("params").ShouldBeTrue();
-            }
-
-            [Fact]
-            public void should_add_applyPackageParametersToDependencies_to_the_option_set()
-            {
-                optionSet.Contains("apply-package-parameters-to-dependencies").ShouldBeTrue();
-            }
-
-            [Fact]
-            public void should_add_applyInstallArgumentsToDependencies_to_the_option_set()
-            {
-                optionSet.Contains("apply-install-arguments-to-dependencies").ShouldBeTrue();
-            }
-
-            [Fact]
-            public void should_add_allowmultipleversions_to_the_option_set()
-            {
-                optionSet.Contains("allowmultipleversions").ShouldBeTrue();
             }
 
             [Fact]
